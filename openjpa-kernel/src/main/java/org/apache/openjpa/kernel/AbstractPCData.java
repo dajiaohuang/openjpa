@@ -71,6 +71,10 @@ public abstract class AbstractPCData
         Object data, FetchConfiguration fetch, Object context) {
         if (data == null)
             return null;
+        // a converted value is cached as its database value, see toData
+        if (fmd.isConvertedObject()) {
+            return fmd.getFieldValue(data, sm.getContext());
+        }
 
         switch (fmd.getDeclaredTypeCode()) {
             case JavaTypes.COLLECTION:
@@ -243,6 +247,18 @@ public abstract class AbstractPCData
     protected Object toData(FieldMetaData fmd, Object val, StoreContext ctx) {
         if (val == null)
             return null;
+        // a converted value is cached as its database value, so that each
+        // instance loaded from the cache gets its own value from the
+        // converter; it is not cached when the converter fails
+        if (fmd.isConvertedObject()) {
+            Object data;
+            try {
+                data = fmd.getExternalValue(val, ctx);
+            } catch (RuntimeException re) {
+                return NULL;
+            }
+            return (data == null) ? NULL : data;
+        }
 
         switch (fmd.getDeclaredTypeCode()) {
             case JavaTypes.COLLECTION:
