@@ -1052,6 +1052,34 @@ public class StateManagerImpl implements OpenJPAStateManager, Serializable {
     }
 
     /**
+     * Return the loaded collection and map fields converted as a whole whose
+     * value converts differently than when it was last loaded or checked,
+     * because an element was changed in place. Such a field is not dirty
+     * until the next check, but its value is not the one in the database.
+     * Returns null if there is none.
+     */
+    public BitSet getWholeConvertedChanged() {
+        if (_wholeConvertedSaved == null) {
+            return null;
+        }
+        BitSet changed = null;
+        for (FieldMetaData fmd : _meta.getWholeConvertedFields()) {
+            int i = fmd.getIndex();
+            if (!_loaded.get(i) || !_wholeConvertedSaved.get(i)) {
+                continue;
+            }
+            Object val = toWholeConverted(i, fetchField(i, false));
+            if (!Objects.deepEquals(_wholeConverted[i], val)) {
+                if (changed == null) {
+                    changed = new BitSet(_wholeConverted.length);
+                }
+                changed.set(i);
+            }
+        }
+        return changed;
+    }
+
+    /**
      * Whether the given field is a collection or map converted as a whole.
      */
     private boolean isWholeConverted(int field) {
